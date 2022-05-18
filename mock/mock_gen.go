@@ -6,6 +6,7 @@ package mock
 
 import (
 	context "context"
+	"errors"
 	io "io"
 	http "net/http"
 	reflect "reflect"
@@ -2579,6 +2580,10 @@ func (m *MockSyncer) Sync(arg0 context.Context, arg1 *core.User) (*core.Batch, e
 	ret0, _ := ret[0].(*core.Batch)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
+}
+
+func (m *MockSyncer) Sync(arg0 context.Context, arg1 *core.User) (*core.Batch, error) {
+	return nil, errors.New("Some error")
 }
 
 // Sync indicates an expected call of Sync.

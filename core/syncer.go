@@ -19,4 +19,5 @@ import "context"
 // Syncer synchronizes the account repository list.
 type Syncer interface {
 	Sync(context.Context, *User) (*Batch, error)
+	SyncSingle(context.Context, *User, string, string) error
 }

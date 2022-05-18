@@ -57,10 +57,62 @@ func (s *Synchronizer) SetFilter(fn FilterFunc) {
 	s.match = fn
 }
 
+func (s *Synchronizer) SyncSingle(ctx context.Context, user *core.User, namespace string, name string) error {
+	repoSlug := namespace + "/" + name
+
+	logger := logrus.WithField("login", user.Login)
+	logger.Debugln("syncer: begin sync single repository " + repoSlug)
+
+	defer func() {
+		// taking the paranoid approach to recover from
+		// a panic that should absolutely never happen.
+		if err := recover(); err != nil {
+			logger = logger.WithField("error", err)
+			logger.Errorf("syncer: unexpected panic\n%s\n", debug.Stack())
+		}
+	}()
+
+	remote, err := s.repoz.Find(ctx, user, repoSlug)
+	if err != nil {
+		logger = logger.WithError(err)
+		logger.Warnln("syncer: cannot get repository")
+		return err
+	}
+	local, err := s.repos.FindName(ctx, namespace, name)
+
+	// There may be other errors that could lead to us not finding it, but let's ignore and just assume that it doesn't exist
+	if err != nil {
+		remote.Synced = time.Now().Unix()
+		remote.Created = time.Now().Unix()
+		remote.Updated = time.Now().Unix()
+		remote.Version = 1
+		err := s.repos.Create(ctx, remote)
+		if err != nil {
+			logger = logger.WithError(err)
+			logger.Warnln("syncer: cannot create")
+			return err
+		}
+	} else if diff(local, remote) {
+		merge(local, remote)
+		local.Synced = time.Now().Unix()
+		local.Updated = time.Now().Unix()
+		err := s.repos.Update(ctx, local)
+		if err != nil {
+			logger = logger.WithError(err)
+			logger.Warnln("syncer: cannot update")
+			return err
+		}
+	}
+
+	logger.Debugln("syncer: finished sync single repository " + repoSlug)
+	return nil
+}
+
 // Sync synchronizes the user repository list in 6 easy steps.
 func (s *Synchronizer) Sync(ctx context.Context, user *core.User) (*core.Batch, error) {
 	logger := logrus.WithField("login", user.Login)
 	logger.Debugln("syncer: begin repository sync")
+	return nil, nil
 
 	defer func() {
 		// taking the paranoid approach to recover from

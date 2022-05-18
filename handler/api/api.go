@@ -324,6 +324,7 @@ func (s Server) Handler() http.Handler {
 		r.Post("/token", user.HandleToken(s.Users))
 		r.Get("/repos", user.HandleRepos(s.Repos))
 		r.Post("/repos", user.HandleSync(s.Syncer, s.Repos))
+		r.Post("/repos/{owner}/{name}", user.HandleSyncSingle(s.Syncer, s.Repos))
 
 		// TODO(bradrydzewski) finalize the name for this endpoint.
 		r.Get("/builds", user.HandleRecent(s.Repos))

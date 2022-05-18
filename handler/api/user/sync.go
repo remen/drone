@@ -16,6 +16,7 @@ package user
 
 import (
 	"context"
+	"github.com/go-chi/chi"
 	"net/http"
 
 	"github.com/drone/drone/core"
@@ -61,5 +62,27 @@ func HandleSync(syncer core.Syncer, repos core.RepositoryStore) http.HandlerFunc
 		} else {
 			render.JSON(w, list, 200)
 		}
+	}
+}
+
+// HandleSyncSingle returns an http.HandlerFunc that synchronizes a single repository and then
+// writes a json-encoded "OK" to the response body.
+func HandleSyncSingle(syncer core.Syncer, repos core.RepositoryStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var (
+			namespace = chi.URLParam(r, "owner")
+			name      = chi.URLParam(r, "name")
+		)
+
+		viewer, _ := request.UserFrom(r.Context())
+
+		err := syncer.SyncSingle(r.Context(), viewer, namespace, name)
+		if err != nil {
+			render.InternalError(w, err)
+			logger.FromRequest(r).WithError(err).
+				Warnln("api: cannot synchronize account")
+			return
+		}
+		render.JSON(w, "OK", 200)
 	}
 }
